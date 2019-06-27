@@ -13,6 +13,7 @@ import org.opendaylight.openflowplugin.api.OFConstants;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Uri;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.OutputActionCase;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.OutputActionCaseBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.output.action._case.OutputAction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.output.action._case.OutputActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.Action;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionBuilder;
@@ -40,6 +41,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instru
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.Instruction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionKey;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes;
@@ -88,9 +90,14 @@ public class SentToController {
         this.dataBroker = dataBroker;//
     }
 
-    public void start() {
+    public void init() {
         LOG.info("I'M SENTING!");
             //获取交换机NODE
+        new Thread(new Runnable() {
+            //加入线程以测试流表和计量表下发是否成功
+            @Override
+            public void run() {
+
             int i=1;//
             final InstanceIdentifier<Node> nodeII
                     = InstanceIdentifier.builder(Nodes.class)
@@ -105,8 +112,15 @@ public class SentToController {
 
             Future<RpcResult<AddFlowOutput>> resultFuture = salFlowService
                     .addFlow(addFlowInputBuilder.build());//下发流表
+                LOG.info("Flow-table has been sent!");
             salMeterService.addMeter(addMeterInputBuilder.build());//下发计量表
+                LOG.info("Meter-table has been sent!");
 
+            }
+        }).start();
+    }
+    public void close(){
+        LOG.info("this progress has closed");
     }
 
 
@@ -115,10 +129,14 @@ public class SentToController {
         FlowBuilder flowBuilder = new FlowBuilder();//构建一个流表
 
         MatchBuilder matchBuilder = new MatchBuilder();//Flow表中包含一个match匹配，因此构建一个匹配
-        final EthernetMatchBuilder ethernetMatchBuilder = new EthernetMatchBuilder().setEthernetType(new EthernetTypeBuilder().setType(new EtherType(35020L)).build())
+        matchBuilder.setInPort(new NodeConnectorId("1"));//设置数据流入端口
+
+
+        /*final EthernetMatchBuilder ethernetMatchBuilder = new EthernetMatchBuilder().setEthernetType(new EthernetTypeBuilder().setType(new EtherType(35020L)).build())
                 .setEthernetDestination(new EthernetDestinationBuilder().build())
                 .setEthernetSource(new EthernetSourceBuilder().build());//由下面步骤得出创建
-        matchBuilder.setEthernetMatch(ethernetMatchBuilder.build());//设置matchBuilder信息发现需要一个ethernetMatchBuilderbuilder()信息，因此需要在上面创建一个
+        matchBuilder.setEthernetMatch(ethernetMatchBuilder.build());//设置matchBuilder信息发现需要一个ethernetMatchBuilderbuilder()信息，因此需要在上面创建一个*/
+
 
         //flow中包含match与instruction
         flowBuilder.setMatch(matchBuilder.build());//将match信息放进Flow表中
@@ -154,6 +172,7 @@ public class SentToController {
         Uri uri = new Uri(OutputPortValues.CONTROLLER.toString());//设置Uri型变量用来指明转发的发送端口
         outputActionBuilder.setMaxLength(64)
                 .setOutputNodeConnector(uri);//设置output动作发现设置发送端口名的时候需要一个Uri型变量，在上面进行设置
+        //******************************************此处设置数据出端口，但是数据类型为uri，如何设置成为固定端口，方便测试**********************************************
 
         actionBuilder.setAction(new OutputActionCaseBuilder().setOutputAction(outputActionBuilder.build()).build());//向actiongBuilder中设置这个动作的发送端口
         actions.add(actionBuilder.build());//将上一个actionBuilder体放入actions动作列表
