@@ -1,0 +1,35 @@
+module meterdemo {
+yang-version 1;
+namespace "urn:opendaylight:params:xml:ns:yang:meterdemo";
+prefix "meterdemo";
+
+revision "2016-08-21" {
+    description "Initial revision of meterdemo model";
+}
+rpc process-meter {
+//rpc input： 指定交换机ID,源目的端口，限速值，触发限速值；下发相应Flow-Table及Meter-Table output：Meter-Table Flow-Table 下发状态
+    input {
+                leaf switch-id {
+                    type string;
+                }
+                leaf src-port {
+                    type string;
+                }
+                leaf dst-port {
+                    type string;
+                }
+                leaf limited-rate {
+                    type string;
+                }
+                leaf burst-size {
+                    type string;
+                }
+            }
+
+    output {
+                leaf result{
+                    type string;
+                }
+    }
+}
+}
