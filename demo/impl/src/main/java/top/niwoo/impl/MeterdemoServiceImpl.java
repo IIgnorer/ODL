@@ -1,3 +1,11 @@
+/*
+ * Copyright © 2017 Joliu and others.  All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
+
 package top.niwoo.impl;
 
 import org.opendaylight.openflowplugin.api.OFConstants;
@@ -60,6 +68,13 @@ public class MeterdemoServiceImpl implements MeterdemoService{
     public MeterdemoServiceImpl(SalFlowService salFlowService, SalMeterService salMeterService){
         this.salFlowService = salFlowService;
         this.salMeterService = salMeterService;}
+        public void init(){
+        LOG.info("MeterRPC is Running!");
+        }
+        public void close(){
+        LOG.info("MeterRPC is stop!");
+    }
+
     @Override
     public Future<RpcResult<ProcessMeterOutput>> processMeter(ProcessMeterInput input){
             ProcessMeterOutputBuilder outputBuilder = new ProcessMeterOutputBuilder();
@@ -105,6 +120,9 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         LOG.info("Meter-table has been sent!");
         return null;
     }
+
+
+
     private Future<RpcResult<AddFlowOutput>> addFlow(String switchId, String inPort, String outPort, long meterId){
         //下发流表
         LOG.info("The flow-table is being created!");//打印日志证明开始创建流表
@@ -166,10 +184,13 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         Future<RpcResult<AddFlowOutput>> resultFuture1 = salFlowService
                 .addFlow(addFlowInputBuilder1.build());//下发流表
 
-        LOG.info("Meter-table has been sent!");
+        LOG.info("Flow-table has been sent!");
 
         return null;
     }
+
+
+
     public static InstructionsBuilder createSentToControllerInstructions(String outPort){
         LOG.info("The instruction is being created");//打印日志证明开始进行Flow表的Instructions的书写
         final List<Action> actions = new ArrayList<>();//用来存放第一个instruction里面数据包转发的动作
@@ -212,9 +233,9 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         LOG.info("The instruction has been created");//打印日志证明Flow表的Instructions的书写完成
 
         return instructionsBuilder;//返回变量instructiongsBuilder
-        /*final List<Action> actionList = new ArrayList<>();
-        ActionBuilder ab = new ActionBuilder();
-        OutputActionBuilder output = new OutputActionBuilder();*/
+        //final List<Action> actionList = new ArrayList<>();
+        //ActionBuilder ab = new ActionBuilder();
+        //OutputActionBuilder output = new OutputActionBuilder();
 
     }
 

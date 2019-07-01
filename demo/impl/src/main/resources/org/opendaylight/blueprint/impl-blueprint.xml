@@ -23,19 +23,14 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
 
 <odl:rpc-service id="salFlowService" interface="org.opendaylight.yang.gen.v1.urn.opendaylight.flow.service.rev130819.SalFlowService"/>
     <odl:rpc-service id="salMeterService" interface="org.opendaylight.yang.gen.v1.urn.opendaylight.meter.service.rev130918.SalMeterService"/>
-    <bean id="sentToController" class="top.niwoo.impl.SentToController"
+
+    <bean id="meterdemoService" class="top.niwoo.impl.MeterdemoServiceImpl"
           init-method="init" destroy-method="close">
         <argument ref="salFlowService"/>
         <argument ref="salMeterService"/>
         <argument ref="dataBroker"/>
     </bean>
 
-    <bean id="meterImpl" class="top.niwoo.impl.meterImpl"
-          init-method="init" destroy-method="close">
-        <argument ref="salFlowService"/>
-        <argument ref="salMeterService"/>
-        <argument ref="dataBroker"/>
-    </bean>
 
  <bean id="helloWorld" class="top.niwoo.impl.HelloServiceImpl"
        init-method="init" >
