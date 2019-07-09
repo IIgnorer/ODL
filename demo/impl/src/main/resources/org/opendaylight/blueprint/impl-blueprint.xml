@@ -21,7 +21,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <argument ref="dataBroker" />
   </bean>
 
-<odl:rpc-service id="salFlowService" interface="org.opendaylight.yang.gen.v1.urn.opendaylight.flow.service.rev130819.SalFlowService"/>
+    <odl:rpc-service id="salFlowService" interface="org.opendaylight.yang.gen.v1.urn.opendaylight.flow.service.rev130819.SalFlowService"/>
     <odl:rpc-service id="salMeterService" interface="org.opendaylight.yang.gen.v1.urn.opendaylight.meter.service.rev130918.SalMeterService"/>
 
     <bean id="meterdemoService" class="top.niwoo.impl.MeterdemoServiceImpl"
@@ -39,4 +39,6 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
 
 
   <odl:rpc-implementation ref="helloWorld"/>
+
+    <odl:rpc-implementation ref="meterdemoService"/>
 </blueprint>

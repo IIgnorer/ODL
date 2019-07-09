@@ -8,6 +8,7 @@
 
 package top.niwoo.impl;
 
+import org.opendaylight.controller.md.sal.binding.api.DataBroker;
 import org.opendaylight.openflowplugin.api.OFConstants;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Uri;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.OutputActionCaseBuilder;
@@ -33,6 +34,11 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instru
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.Instruction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeRef;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.service.rev130918.AddMeterInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.service.rev130918.AddMeterOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.service.rev130918.SalMeterService;
@@ -50,7 +56,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.meterdem
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.meterdemo.rev160821.ProcessMeterInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.meterdemo.rev160821.ProcessMeterOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.meterdemo.rev160821.ProcessMeterOutputBuilder;
+import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.RpcResult;
+import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,12 +70,19 @@ import java.util.List;
 import java.util.concurrent.Future;
 
 public class MeterdemoServiceImpl implements MeterdemoService{
+
+
     private static final Logger LOG = LoggerFactory.getLogger(MeterdemoServiceImpl.class);
-    private SalFlowService salFlowService;
-    private SalMeterService salMeterService;
-    public MeterdemoServiceImpl(SalFlowService salFlowService, SalMeterService salMeterService){
+    private final SalFlowService salFlowService;
+    private final SalMeterService salMeterService;
+    private final DataBroker dataBroker;//为了读取交换机信息存入nodeII
+
+
+    public MeterdemoServiceImpl(SalFlowService salFlowService, SalMeterService salMeterService, DataBroker dataBroker){
         this.salFlowService = salFlowService;
-        this.salMeterService = salMeterService;}
+        this.salMeterService = salMeterService;
+        this.dataBroker = dataBroker;
+    }
         public void init(){
         LOG.info("MeterRPC is Running!");
         }
@@ -80,10 +95,19 @@ public class MeterdemoServiceImpl implements MeterdemoService{
             ProcessMeterOutputBuilder outputBuilder = new ProcessMeterOutputBuilder();
             Long meterID = 1L;
 
+        int i=1;//
+        final InstanceIdentifier<Node> nodeII = InstanceIdentifier.builder(Nodes.class)
+                .child(Node.class, new NodeKey(new NodeId("openflow:" + i)))
+                .build();
+        NodeRef nodeRef = new NodeRef(nodeII);
+
             addMeter(input.getSwitchId(), input.getLimitedRate(), input.getBurstSize(),meterID);
             addFlow(input.getSwitchId(), input.getSrcPort(), input.getDstPort(), meterID);
 
-            return null;
+            ProcessMeterOutput output = null;
+            output = new ProcessMeterOutputBuilder().setResult("Success!").build();
+
+            return RpcResultBuilder.success(output).buildFuture();//2019.7.4增加返回值
         }
 
     private Future<RpcResult<AddMeterOutput>> addMeter(String switchId, String rate, String burstSize, long meterId){
@@ -152,6 +176,8 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         LOG.info("The flow-table has been created!");//打印日志证明创建流表完成
 
         AddFlowInputBuilder addFlowInputBuilder = new AddFlowInputBuilder(flowBuilder.build());
+        //*******************************************交换机名未赋，nodeII未传入***************************************************
+        //addFlowInputBuilder.setNode();//交换机名
         Future<RpcResult<AddFlowOutput>> resultFuture = salFlowService
                 .addFlow(addFlowInputBuilder.build());//下发流表
 
