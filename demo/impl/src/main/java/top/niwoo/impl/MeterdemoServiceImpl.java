@@ -95,14 +95,18 @@ public class MeterdemoServiceImpl implements MeterdemoService{
             ProcessMeterOutputBuilder outputBuilder = new ProcessMeterOutputBuilder();
             Long meterID = 1L;
 
-        int i=1;//
+        /*int i=1;
         final InstanceIdentifier<Node> nodeII = InstanceIdentifier.builder(Nodes.class)
                 .child(Node.class, new NodeKey(new NodeId("openflow:" + i)))
+                .build();*/
+
+        final InstanceIdentifier<Node> nodeII = InstanceIdentifier.builder(Nodes.class)
+                .child(Node.class, new NodeKey(new NodeId(input.getSwitchId())))
                 .build();
         NodeRef nodeRef = new NodeRef(nodeII);
 
-            addMeter(input.getSwitchId(), input.getLimitedRate(), input.getBurstSize(),meterID);
-            addFlow(input.getSwitchId(), input.getSrcPort(), input.getDstPort(), meterID);
+            addMeter(input.getSwitchId(), input.getLimitedRate(), input.getBurstSize(), meterID, nodeRef);
+            addFlow(input.getSwitchId(), input.getSrcPort(), input.getDstPort(), meterID, nodeRef);
 
             ProcessMeterOutput output = null;
             output = new ProcessMeterOutputBuilder().setResult("Success!").build();
@@ -110,11 +114,11 @@ public class MeterdemoServiceImpl implements MeterdemoService{
             return RpcResultBuilder.success(output).buildFuture();//2019.7.4增加返回值
         }
 
-    private Future<RpcResult<AddMeterOutput>> addMeter(String switchId, String rate, String burstSize, long meterId){
+    private Future<RpcResult<AddMeterOutput>> addMeter(String switchId, String rate, String burstSize, long meterId, NodeRef nodeRef){
         //下发计量表
         LOG.info("The meter-table is being created!");//打印日证明开始创建计量表
 
-        Long switchIdd = Long.valueOf(switchId);
+        Long switchIdd = Long.valueOf(switchId);//因为salFlowService与salMeterService方法需要输入long型变量
         Long ratee = Long.valueOf(rate);
         Long burstSizee = Long.valueOf(burstSize);
 
@@ -140,6 +144,7 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         LOG.info("The meter-table has been created!");
 
         AddMeterInputBuilder addMeterInputBuilder = new AddMeterInputBuilder(meterBuilder.build());
+        addMeterInputBuilder.setNode(new NodeRef(nodeRef));
         salMeterService.addMeter(addMeterInputBuilder.build());//下发计量表
         LOG.info("Meter-table has been sent!");
         return null;
@@ -147,7 +152,7 @@ public class MeterdemoServiceImpl implements MeterdemoService{
 
 
 
-    private Future<RpcResult<AddFlowOutput>> addFlow(String switchId, String inPort, String outPort, long meterId){
+    private Future<RpcResult<AddFlowOutput>> addFlow(String switchId, String inPort, String outPort, long meterId, NodeRef nodeRef){
         //下发流表
         LOG.info("The flow-table is being created!");//打印日志证明开始创建流表
 
@@ -173,10 +178,11 @@ public class MeterdemoServiceImpl implements MeterdemoService{
                 .setStrict(false)
                 .setTableId((short)0);//设置流表各指标
 
-        LOG.info("The flow-table has been created!");//打印日志证明创建流表完成
+        LOG.info("The flow-table1 has been created!");//打印日志证明创建流表完成
 
         AddFlowInputBuilder addFlowInputBuilder = new AddFlowInputBuilder(flowBuilder.build());
         //*******************************************交换机名未赋，nodeII未传入***************************************************
+        addFlowInputBuilder.setNode(new NodeRef(nodeRef));
         //addFlowInputBuilder.setNode();//交换机名
         Future<RpcResult<AddFlowOutput>> resultFuture = salFlowService
                 .addFlow(addFlowInputBuilder.build());//下发流表
@@ -204,9 +210,10 @@ public class MeterdemoServiceImpl implements MeterdemoService{
                 .setStrict(false)
                 .setTableId((short)0);//设置流表各指标
 
-        LOG.info("The flow-table has been created!");//打印日志证明创建流表完成
+        LOG.info("The flow-table2 has been created!");//打印日志证明创建流表完成
 
         AddFlowInputBuilder addFlowInputBuilder1 = new AddFlowInputBuilder(flowBuilder1.build());
+        addFlowInputBuilder1.setNode(new NodeRef(nodeRef));
         Future<RpcResult<AddFlowOutput>> resultFuture1 = salFlowService
                 .addFlow(addFlowInputBuilder1.build());//下发流表
 
@@ -239,7 +246,13 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         instructionBuilder.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(applyActionsBuilder.build()).build());//设置这个instructionBuilder变量中的流表具体Instruction
 
         //构建meter与flow联系的instruction
-        final InstructionBuilder instructionBuilder1 = new InstructionBuilder();//为了与meter表关联而设置第二个Instruction，变量名为instructionBuilder1
+        //
+        // 下面这行设置多余
+        // final InstructionBuilder instructionBuilder1 = new InstructionBuilder();//为了与meter表关联而设置第二个Instruction，变量名为instructionBuilder1
+
+
+        //*******************************************instruction1未设置********************************************************
+
         final InstructionBuilder applyMeterInstruction = new InstructionBuilder().setOrder(1)
                 .setInstruction(new MeterCaseBuilder()
                         .setMeter(new org.opendaylight.yang.gen.v1.urn.opendaylight
@@ -253,7 +266,7 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         InstructionsBuilder instructionsBuilder = new InstructionsBuilder();//设置一个instructionsBuilder来存放两个Instruction
         List<Instruction> instructions = new ArrayList<>();//表instructions用来存放两个instructionBuilder的体
         instructions.add(instructionBuilder.build());//将instructionBuilder的体输入给表instructions
-        instructions.add(instructionBuilder1.build());//将instructionBuilder1的体输入给表instructions
+        instructions.add(applyMeterInstruction.build());//将instructionBuilder1的体输入给表instructions
         instructionsBuilder.setInstruction(instructions);//将表instructions输入给变量instructionsBuilder
 
         LOG.info("The instruction has been created");//打印日志证明Flow表的Instructions的书写完成
