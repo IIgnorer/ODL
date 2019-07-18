@@ -15,6 +15,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.acti
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.output.action._case.OutputActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.Action;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.FlowId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.meters.MeterBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.meters.MeterKey;
@@ -33,12 +34,14 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instru
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.instruction.apply.actions._case.ApplyActionsBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.Instruction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeKey;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.l2.types.rev130827.EtherType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.service.rev130918.AddMeterInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.service.rev130918.AddMeterOutput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.service.rev130918.SalMeterService;
@@ -52,6 +55,8 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.types.rev130918.meter
 import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.types.rev130918.meter.meter.band.headers.MeterBandHeaderBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.types.rev130918.meter.meter.band.headers.MeterBandHeaderKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.types.rev130918.meter.meter.band.headers.meter.band.header.MeterBandTypesBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.ethernet.match.fields.EthernetTypeBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.match.EthernetMatchBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.meterdemo.rev160821.MeterdemoService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.meterdemo.rev160821.ProcessMeterInput;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.meterdemo.rev160821.ProcessMeterOutput;
@@ -100,13 +105,13 @@ public class MeterdemoServiceImpl implements MeterdemoService{
                 .child(Node.class, new NodeKey(new NodeId("openflow:" + i)))
                 .build();*/
 
-        final InstanceIdentifier<Node> nodeII = InstanceIdentifier.builder(Nodes.class)
-                .child(Node.class, new NodeKey(new NodeId(input.getSwitchId())))
+        final InstanceIdentifier nodeII = InstanceIdentifier.builder(Nodes.class)
+                .child(Node.class, new NodeKey(new NodeId("openflow:1")))
                 .build();
-        NodeRef nodeRef = new NodeRef(nodeII);
+        //NodeRef nodeRef = new NodeRef(nodeII);
 
-            addMeter(input.getSwitchId(), input.getLimitedRate(), input.getBurstSize(), meterID, nodeRef);
-            addFlow(input.getSwitchId(), input.getSrcPort(), input.getDstPort(), meterID, nodeRef);
+            addMeter(input.getSwitchId(), input.getLimitedRate(), input.getBurstSize(), meterID, nodeII);
+            addFlow(input.getSwitchId(), input.getSrcPort(), input.getDstPort(), meterID, nodeII);
 
             ProcessMeterOutput output = null;
             output = new ProcessMeterOutputBuilder().setResult("Success!").build();
@@ -114,19 +119,19 @@ public class MeterdemoServiceImpl implements MeterdemoService{
             return RpcResultBuilder.success(output).buildFuture();//2019.7.4增加返回值
         }
 
-    private Future<RpcResult<AddMeterOutput>> addMeter(String switchId, String rate, String burstSize, long meterId, NodeRef nodeRef){
+    private Future<RpcResult<AddMeterOutput>> addMeter(String switchId, String rate, String burstSize, long meterId, InstanceIdentifier nodeII){
         //下发计量表
         LOG.info("The meter-table is being created!");//打印日证明开始创建计量表
 
-        Long switchIdd = Long.valueOf(switchId);//因为salFlowService与salMeterService方法需要输入long型变量
-        Long ratee = Long.valueOf(rate);
-        Long burstSizee = Long.valueOf(burstSize);
+        /*Long switchIdd = Long.valueOf(switchId).longValue();*/ //因为salFlowService与salMeterService方法需要输入long型变量
+        Long ratee = Long.valueOf(rate).longValue();
+        Long burstSizee = Long.valueOf(burstSize).longValue();
 
         ArrayList<MeterBandHeader> meterBandHeaders = new ArrayList<>();//设置一个表meterBandHeaders用来存放计量表的操作
         MeterBandHeader meterBandHeader = new MeterBandHeaderBuilder()//创建一个meterBandHeader来设置计量表的操作的具体值
                 .setMeterBandTypes(new MeterBandTypesBuilder().setFlags(new MeterBandType(true,false,false)).build())
                 .setBandBurstSize(burstSizee)
-                .setBandId(new BandId(switchIdd))
+                /*.setBandId(new BandId(switchIdd))*/
                 .setBandRate(ratee)
                 .setBandType(new DropBuilder().setDropRate(7000L).setDropBurstSize(200L).build())
                 .setKey(new MeterBandHeaderKey(new BandId(1L)))
@@ -144,7 +149,7 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         LOG.info("The meter-table has been created!");
 
         AddMeterInputBuilder addMeterInputBuilder = new AddMeterInputBuilder(meterBuilder.build());
-        addMeterInputBuilder.setNode(new NodeRef(nodeRef));
+        addMeterInputBuilder.setNode(new NodeRef(nodeII));
         salMeterService.addMeter(addMeterInputBuilder.build());//下发计量表
         LOG.info("Meter-table has been sent!");
         return null;
@@ -152,7 +157,7 @@ public class MeterdemoServiceImpl implements MeterdemoService{
 
 
 
-    private Future<RpcResult<AddFlowOutput>> addFlow(String switchId, String inPort, String outPort, long meterId, NodeRef nodeRef){
+    private Future<RpcResult<AddFlowOutput>> addFlow(String switchId, String inPort, String outPort, long meterId, InstanceIdentifier nodeII){
         //下发流表
         LOG.info("The flow-table is being created!");//打印日志证明开始创建流表
 
@@ -160,6 +165,10 @@ public class MeterdemoServiceImpl implements MeterdemoService{
 
         MatchBuilder matchBuilder = new MatchBuilder();//Flow表中包含一个match匹配，因此构建一个匹配
         matchBuilder.setInPort(new NodeConnectorId(inPort));//设置数据流入端口
+        //test：改成以太网流表
+        //EthernetMatchBuilder ethernetMatchBuilder = new EthernetMatchBuilder().setEthernetType(new EthernetTypeBuilder().setType(new EtherType(35020L)).build());
+        //matchBuilder.setEthernetMatch(ethernetMatchBuilder.build());
+
         flowBuilder.setMatch(matchBuilder.build());//将match信息放进Flow表中
         flowBuilder.setFlowName("MXC")
                 .setFlags(new FlowModFlags(false,false,false,false,false))
@@ -182,7 +191,7 @@ public class MeterdemoServiceImpl implements MeterdemoService{
 
         AddFlowInputBuilder addFlowInputBuilder = new AddFlowInputBuilder(flowBuilder.build());
         //*******************************************交换机名未赋，nodeII未传入***************************************************
-        addFlowInputBuilder.setNode(new NodeRef(nodeRef));
+        addFlowInputBuilder.setNode(new NodeRef(nodeII));
         //addFlowInputBuilder.setNode();//交换机名
         Future<RpcResult<AddFlowOutput>> resultFuture = salFlowService
                 .addFlow(addFlowInputBuilder.build());//下发流表
@@ -213,7 +222,7 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         LOG.info("The flow-table2 has been created!");//打印日志证明创建流表完成
 
         AddFlowInputBuilder addFlowInputBuilder1 = new AddFlowInputBuilder(flowBuilder1.build());
-        addFlowInputBuilder1.setNode(new NodeRef(nodeRef));
+        addFlowInputBuilder1.setNode(new NodeRef(nodeII));
         Future<RpcResult<AddFlowOutput>> resultFuture1 = salFlowService
                 .addFlow(addFlowInputBuilder1.build());//下发流表
 
@@ -232,16 +241,20 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         final ActionBuilder actionBuilder = new ActionBuilder();
         final OutputActionBuilder outputActionBuilder = new OutputActionBuilder();//output到控制器
 
-        Uri uri = new Uri(outPort);
-        //Uri uri = new Uri(OutputPortValues.CONTROLLER.toString());//设置Uri型变量用来指明转发的发送端口
-        outputActionBuilder.setMaxLength(64)
+        //Uri uri = new Uri(outPort);
+        Uri uri = new Uri(outPort);//设置Uri型变量用来指明转发的发送端口
+        outputActionBuilder.setMaxLength(OFConstants.OFPCML_NO_BUFFER)//7月18日由（64）改为此设置
                 .setOutputNodeConnector(uri);//设置output动作发现设置发送端口名的时候需要一个Uri型变量，在上面进行设置
 
         actionBuilder.setAction(new OutputActionCaseBuilder().setOutputAction(outputActionBuilder.build()).build());//向actiongBuilder中设置这个动作的发送端口
+        actionBuilder.setOrder(0);//7.8增加
+        actionBuilder.setKey(new ActionKey(0));
         actions.add(actionBuilder.build());//将上一个actionBuilder体放入actions动作列表
 
         //instruction
         final InstructionBuilder instructionBuilder = new InstructionBuilder();//先设置一个用来存放这条流表一个Instruction的变量instructionBuilder
+        instructionBuilder.setOrder(0);//7.18加入
+        instructionBuilder.setKey(new InstructionKey(0));//7.18加入
         final ApplyActionsBuilder applyActionsBuilder = new ApplyActionsBuilder().setAction(actions);//InstructionBuilder中包含的设置ApplyActionBuilder需要设置，将actions在前面设置后在这里输入
         instructionBuilder.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(applyActionsBuilder.build()).build());//设置这个instructionBuilder变量中的流表具体Instruction
 
@@ -253,8 +266,11 @@ public class MeterdemoServiceImpl implements MeterdemoService{
 
         //*******************************************instruction1未设置********************************************************
 
-        final InstructionBuilder applyMeterInstruction = new InstructionBuilder().setOrder(1)
-                .setInstruction(new MeterCaseBuilder()
+        final InstructionBuilder applyMeterInstruction = new InstructionBuilder();
+                applyMeterInstruction
+                        .setOrder(0)
+                        .setKey(new InstructionKey(0))
+                        .setInstruction(new MeterCaseBuilder()
                         .setMeter(new org.opendaylight.yang.gen.v1.urn.opendaylight
                                 .flow.types.rev131026.instruction.instruction
                                 .meter._case.MeterBuilder()
