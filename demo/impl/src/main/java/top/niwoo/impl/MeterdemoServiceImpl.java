@@ -170,22 +170,25 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         //matchBuilder.setEthernetMatch(ethernetMatchBuilder.build());
 
         flowBuilder.setMatch(matchBuilder.build());//将match信息放进Flow表中
-        flowBuilder.setFlowName("MXC")
-                .setFlags(new FlowModFlags(false,false,false,false,false))
-                .setCookieMask(new FlowCookie(BigInteger.valueOf(10L)))
-                .setCookie(new FlowCookie(BigInteger.valueOf(10L)))
-                .setContainerName(null)
-                .setBufferId(OFConstants.OFP_NO_BUFFER)
-                .setBarrier(Boolean.FALSE)
-                .setHardTimeout(0)
-                .setId(new FlowId("MXC"))
-                .setIdleTimeout(0)
-                .setInstallHw(false)
-                .setInstructions(createSentToControllerInstructions(outPort).build())//流表中的操作项Instructions，包含数据包转发的方向以及与meter表关联的两个instruction
-                .setKey(new FlowKey(new FlowId("MXC")))
-                .setPriority(0)
-                .setStrict(false)
-                .setTableId((short)0);//设置流表各指标
+        flowBuilder.setInstructions(createSentToControllerInstructions(outPort, meterId).build());
+        flowBuilder.setPriority(0);
+
+        flowBuilder.setFlowName("MXC");
+        flowBuilder.setFlags(new FlowModFlags(false,false,false,false,false));
+        flowBuilder.setCookieMask(new FlowCookie(BigInteger.valueOf(10L)));
+        flowBuilder.setCookie(new FlowCookie(BigInteger.valueOf(10L)));
+        flowBuilder.setContainerName(null);
+        flowBuilder.setBufferId(OFConstants.OFP_NO_BUFFER);
+        flowBuilder.setBarrier(Boolean.FALSE);
+        flowBuilder.setHardTimeout(0);
+        flowBuilder.setId(new FlowId("MXC"));
+        flowBuilder.setIdleTimeout(0);
+        flowBuilder.setInstallHw(false);
+                /*.setInstructions(createSentToControllerInstructions(outPort, meterId).build())*/ //流表中的操作项Instructions，包含数据包转发的方向以及与meter表关联的两个instruction
+        flowBuilder.setKey(new FlowKey(new FlowId("MXC")));
+                /*.setPriority(0)*/
+        flowBuilder.setStrict(false);
+        flowBuilder.setTableId((short)0);//设置流表各指标
 
         LOG.info("The flow-table1 has been created!");//打印日志证明创建流表完成
 
@@ -201,23 +204,27 @@ public class MeterdemoServiceImpl implements MeterdemoService{
 
         MatchBuilder matchBuilder1 = new MatchBuilder();//Flow表中包含一个match匹配，因此构建一个匹配
         matchBuilder1.setInPort(new NodeConnectorId(outPort));//设置数据流入端口
+
         flowBuilder1.setMatch(matchBuilder1.build());//将match信息放进Flow表中
-        flowBuilder1.setFlowName("MXC")
-                .setFlags(new FlowModFlags(false,false,false,false,false))
-                .setCookieMask(new FlowCookie(BigInteger.valueOf(10L)))
-                .setCookie(new FlowCookie(BigInteger.valueOf(10L)))
-                .setContainerName(null)
-                .setBufferId(OFConstants.OFP_NO_BUFFER)
-                .setBarrier(Boolean.FALSE)
-                .setHardTimeout(0)
-                .setId(new FlowId("MXC"))
-                .setIdleTimeout(0)
-                .setInstallHw(false)
-                .setInstructions(createSentToControllerInstructions(inPort).build())//流表中的操作项Instructions，包含数据包转发的方向以及与meter表关联的两个instruction
-                .setKey(new FlowKey(new FlowId("MXC")))
-                .setPriority(0)
-                .setStrict(false)
-                .setTableId((short)0);//设置流表各指标
+        flowBuilder1.setInstructions(createSentToControllerInstructions(inPort, meterId).build());
+        flowBuilder1.setPriority(0);
+
+        flowBuilder1.setFlowName("MXC");
+        flowBuilder1.setFlags(new FlowModFlags(false,false,false,false,false));
+        flowBuilder1.setCookieMask(new FlowCookie(BigInteger.valueOf(10L)));
+        flowBuilder1.setCookie(new FlowCookie(BigInteger.valueOf(10L)));
+        flowBuilder1.setContainerName(null);
+        flowBuilder1.setBufferId(OFConstants.OFP_NO_BUFFER);
+        flowBuilder1.setBarrier(Boolean.FALSE);
+        flowBuilder1.setHardTimeout(0);
+        flowBuilder1.setId(new FlowId("MXC"));
+        flowBuilder1.setIdleTimeout(0);
+        flowBuilder1.setInstallHw(false);
+                /*.setInstructions(createSentToControllerInstructions(inPort, meterId).build())*/ //流表中的操作项Instructions，包含数据包转发的方向以及与meter表关联的两个instruction
+        flowBuilder1.setKey(new FlowKey(new FlowId("MXC")));
+                /*.setPriority(0)*/
+        flowBuilder1.setStrict(false);
+        flowBuilder1.setTableId((short)0);//设置流表各指标
 
         LOG.info("The flow-table2 has been created!");//打印日志证明创建流表完成
 
@@ -233,7 +240,7 @@ public class MeterdemoServiceImpl implements MeterdemoService{
 
 
 
-    public static InstructionsBuilder createSentToControllerInstructions(String outPort){
+    public static InstructionsBuilder createSentToControllerInstructions(String outPort, long meterID){
         LOG.info("The instruction is being created");//打印日志证明开始进行Flow表的Instructions的书写
         final List<Action> actions = new ArrayList<>();//用来存放第一个instruction里面数据包转发的动作
 
@@ -268,14 +275,15 @@ public class MeterdemoServiceImpl implements MeterdemoService{
 
         final InstructionBuilder applyMeterInstruction = new InstructionBuilder();
                 applyMeterInstruction
-                        .setOrder(0)
-                        .setKey(new InstructionKey(0))
+                        .setOrder(1)
+                        /*.setKey(new InstructionKey(0))*/
                         .setInstruction(new MeterCaseBuilder()
-                        .setMeter(new org.opendaylight.yang.gen.v1.urn.opendaylight
+                                .setMeter(new org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.instruction.meter._case.MeterBuilder().setMeterId(new MeterId(meterID)).build())
+                        /*.setMeter(new org.opendaylight.yang.gen.v1.urn.opendaylight
                                 .flow.types.rev131026.instruction.instruction
                                 .meter._case.MeterBuilder()
-                                .setMeterId(new MeterId(1L))//在Instruction里设置了Flow表与Meter表的关联
-                                .build())
+                                .setMeterId(new MeterId(meterID))//在Instruction里设置了Flow表与Meter表的关联
+                                .build())*/
                         .build());//缺少一个setInstructionKey
 
         //创建一个InstructionsBuilder放两个Instruction
