@@ -131,9 +131,9 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         MeterBandHeader meterBandHeader = new MeterBandHeaderBuilder()//创建一个meterBandHeader来设置计量表的操作的具体值
                 .setMeterBandTypes(new MeterBandTypesBuilder().setFlags(new MeterBandType(true,false,false)).build())
                 .setBandBurstSize(burstSizee)
-                /*.setBandId(new BandId(switchIdd))*/
+                .setBandId(new BandId(0L))
                 .setBandRate(ratee)
-                .setBandType(new DropBuilder().setDropRate(7000L).setDropBurstSize(200L).build())
+                .setBandType(new DropBuilder().setDropRate(ratee).setDropBurstSize(burstSizee).build())
                 .setKey(new MeterBandHeaderKey(new BandId(1L)))
                 .build();
         meterBandHeaders.add(meterBandHeader);//将上述设置的计量表的操作输入到meterBandHeaders表中
@@ -142,7 +142,7 @@ public class MeterdemoServiceImpl implements MeterdemoService{
                 .setMeterId(new MeterId(meterId))
                 .setMeterBandHeaders(new MeterBandHeadersBuilder().setMeterBandHeader(meterBandHeaders).build())//发现计量表需要一个meterBandHeaders也就是计量表的操作项，在上面进行设置↑
                 .setKey(new MeterKey(new MeterId(1L)))
-                .setFlags(new MeterFlags(false,false,false,false))
+                .setFlags(new MeterFlags(false,true,false,false))
                 .setContainerName("MXC")
                 .setBarrier(Boolean.TRUE);//计量表的赋值
 
@@ -256,6 +256,9 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         actionBuilder.setAction(new OutputActionCaseBuilder().setOutputAction(outputActionBuilder.build()).build());//向actiongBuilder中设置这个动作的发送端口
         actionBuilder.setOrder(0);//7.8增加
         actionBuilder.setKey(new ActionKey(0));
+
+
+
         actions.add(actionBuilder.build());//将上一个actionBuilder体放入actions动作列表
 
         //instruction
