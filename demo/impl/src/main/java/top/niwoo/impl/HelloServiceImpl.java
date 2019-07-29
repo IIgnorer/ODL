@@ -64,14 +64,14 @@ public class HelloServiceImpl implements DemoService {      //HelloServiceImpl�
     // final InstanceIdentifier<MyContainer1>MyContainer1_ID = InstanceIdentifier.builder(MyContainer1.class).build(); //有误，编辑yang文件container my-container1
     @Override
     public Future<RpcResult<HelloWorldOutput>> helloWorld(HelloWorldInput input) {   //接口里面的方法helloworldoutput.java
-        String name = input.getName();
-        HelloWorldOutput output = null;
-        if (name != null) {
-            output = new HelloWorldOutputBuilder()
-                    .setGreeting("Hello:" + name)
-                    .build();
-        }
-        writeToGreetingRegistry(input,output);
+            String name = input.getName();
+            HelloWorldOutput output = null;
+            if (name != null) {
+                output = new HelloWorldOutputBuilder()
+                        .setGreeting("Hello:" + name)
+                        .build();
+            }
+            writeToGreetingRegistry(input,output);
         return RpcResultBuilder.success(output).buildFuture();  //要返回output
     }
     private void writeToGreetingRegistry(HelloWorldInput input, HelloWorldOutput output) {

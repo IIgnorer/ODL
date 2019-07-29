@@ -23,7 +23,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.ta
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.inventory.rev130819.tables.table.FlowKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.service.rev130819.AddFlowInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.service.rev130819.AddFlowOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.service.rev130819.AddFlowOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.service.rev130819.SalFlowService;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.transaction.rev150304.TransactionId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.FlowCookie;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.FlowModFlags;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.OutputPortValues;
@@ -44,6 +46,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.N
 import org.opendaylight.yang.gen.v1.urn.opendaylight.l2.types.rev130827.EtherType;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.service.rev130918.AddMeterInputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.service.rev130918.AddMeterOutput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.service.rev130918.AddMeterOutputBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.service.rev130918.SalMeterService;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.types.rev130918.BandId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.meter.types.rev130918.MeterBandType;
@@ -112,6 +115,7 @@ public class MeterdemoServiceImpl implements MeterdemoService{
 
             addMeter(input.getSwitchId(), input.getLimitedRate(), input.getBurstSize(), meterID, nodeII);
             addFlow(input.getSwitchId(), input.getSrcPort(), input.getDstPort(), meterID, nodeII);
+            addFlow1(input.getSwitchId(), input.getSrcPort(), input.getDstPort(), meterID, nodeII);
 
             ProcessMeterOutput output = null;
             output = new ProcessMeterOutputBuilder().setResult("Success!").build();
@@ -124,6 +128,8 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         LOG.info("The meter-table is being created!");//打印日证明开始创建计量表
 
         /*Long switchIdd = Long.valueOf(switchId).longValue();*/ //因为salFlowService与salMeterService方法需要输入long型变量
+
+
         Long ratee = Long.valueOf(rate).longValue();
         Long burstSizee = Long.valueOf(burstSize).longValue();
 
@@ -150,9 +156,13 @@ public class MeterdemoServiceImpl implements MeterdemoService{
 
         AddMeterInputBuilder addMeterInputBuilder = new AddMeterInputBuilder(meterBuilder.build());
         addMeterInputBuilder.setNode(new NodeRef(nodeII));
-        salMeterService.addMeter(addMeterInputBuilder.build());//下发计量表
         LOG.info("Meter-table has been sent!");
-        return null;
+        return salMeterService.addMeter(addMeterInputBuilder.build());//下发计量表
+
+
+
+        //output = new AddMeterOutputBuilder().setTransactionId(new TransactionId(new BigInteger())).build();
+       //return RpcResultBuilder(output)
     }
 
 
@@ -160,6 +170,8 @@ public class MeterdemoServiceImpl implements MeterdemoService{
     private Future<RpcResult<AddFlowOutput>> addFlow(String switchId, String inPort, String outPort, long meterId, InstanceIdentifier nodeII){
         //下发流表
         LOG.info("The flow-table is being created!");//打印日志证明开始创建流表
+
+        AddFlowOutput output = null;
 
         FlowBuilder flowBuilder = new FlowBuilder();//构建一个流表
 
@@ -196,10 +208,17 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         //*******************************************交换机名未赋，nodeII未传入***************************************************
         addFlowInputBuilder.setNode(new NodeRef(nodeII));
         //addFlowInputBuilder.setNode();//交换机名
-        Future<RpcResult<AddFlowOutput>> resultFuture = salFlowService
-                .addFlow(addFlowInputBuilder.build());//下发流表
+        /*Future<RpcResult<AddFlowOutput>> resultFuture = salFlowService
+                .addFlow(addFlowInputBuilder.build());//下发流表*/
 
-        //***************************************************第二个流表***********************************************************
+
+        LOG.info("Flow-table has been sent!");
+
+        return salFlowService.addFlow(addFlowInputBuilder.build());
+    }
+
+    private Future<RpcResult<AddFlowOutput>> addFlow1(String switchId, String inPort, String outPort, long meterId, InstanceIdentifier nodeII)
+    {
         FlowBuilder flowBuilder1 = new FlowBuilder();//构建一个流表
 
         MatchBuilder matchBuilder1 = new MatchBuilder();//Flow表中包含一个match匹配，因此构建一个匹配
@@ -220,9 +239,9 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         flowBuilder1.setId(new FlowId("MXC"));
         flowBuilder1.setIdleTimeout(0);
         flowBuilder1.setInstallHw(false);
-                /*.setInstructions(createSentToControllerInstructions(inPort, meterId).build())*/ //流表中的操作项Instructions，包含数据包转发的方向以及与meter表关联的两个instruction
+        /*.setInstructions(createSentToControllerInstructions(inPort, meterId).build())*/ //流表中的操作项Instructions，包含数据包转发的方向以及与meter表关联的两个instruction
         flowBuilder1.setKey(new FlowKey(new FlowId("MXC")));
-                /*.setPriority(0)*/
+        /*.setPriority(0)*/
         flowBuilder1.setStrict(false);
         flowBuilder1.setTableId((short)0);//设置流表各指标
 
@@ -230,12 +249,13 @@ public class MeterdemoServiceImpl implements MeterdemoService{
 
         AddFlowInputBuilder addFlowInputBuilder1 = new AddFlowInputBuilder(flowBuilder1.build());
         addFlowInputBuilder1.setNode(new NodeRef(nodeII));
-        Future<RpcResult<AddFlowOutput>> resultFuture1 = salFlowService
-                .addFlow(addFlowInputBuilder1.build());//下发流表
+        /*Future<RpcResult<AddFlowOutput>> resultFuture1 = salFlowService
+                .addFlow(addFlowInputBuilder1.build());//下发流表*/
 
         LOG.info("Flow-table has been sent!");
 
-        return null;
+        return salFlowService.addFlow(addFlowInputBuilder1.build());
+
     }
 
 
@@ -263,7 +283,7 @@ public class MeterdemoServiceImpl implements MeterdemoService{
 
         //instruction
         final InstructionBuilder instructionBuilder = new InstructionBuilder();//先设置一个用来存放这条流表一个Instruction的变量instructionBuilder
-        instructionBuilder.setOrder(0);//7.18加入
+        instructionBuilder.setOrder(1);//7.18加入
         instructionBuilder.setKey(new InstructionKey(0));//7.18加入
         final ApplyActionsBuilder applyActionsBuilder = new ApplyActionsBuilder().setAction(actions);//InstructionBuilder中包含的设置ApplyActionBuilder需要设置，将actions在前面设置后在这里输入
         instructionBuilder.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(applyActionsBuilder.build()).build());//设置这个instructionBuilder变量中的流表具体Instruction
@@ -278,8 +298,8 @@ public class MeterdemoServiceImpl implements MeterdemoService{
 
         final InstructionBuilder applyMeterInstruction = new InstructionBuilder();
                 applyMeterInstruction
-                        .setOrder(1)
-                        /*.setKey(new InstructionKey(0))*/
+                        .setOrder(0)
+                        .setKey(new InstructionKey(0))
                         .setInstruction(new MeterCaseBuilder()
                                 .setMeter(new org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.instruction.meter._case.MeterBuilder().setMeterId(new MeterId(meterID)).build())
                         /*.setMeter(new org.opendaylight.yang.gen.v1.urn.opendaylight
@@ -292,8 +312,12 @@ public class MeterdemoServiceImpl implements MeterdemoService{
         //创建一个InstructionsBuilder放两个Instruction
         InstructionsBuilder instructionsBuilder = new InstructionsBuilder();//设置一个instructionsBuilder来存放两个Instruction
         List<Instruction> instructions = new ArrayList<>();//表instructions用来存放两个instructionBuilder的体
-        instructions.add(instructionBuilder.build());//将instructionBuilder的体输入给表instructions
+
+        //instructions.add(instructionBuilder.build());//将instructionBuilder的体输入给表instructions
+
         instructions.add(applyMeterInstruction.build());//将instructionBuilder1的体输入给表instructions
+        instructions.add(instructionBuilder.build());
+
         instructionsBuilder.setInstruction(instructions);//将表instructions输入给变量instructionsBuilder
 
         LOG.info("The instruction has been created");//打印日志证明Flow表的Instructions的书写完成
